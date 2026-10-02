@@ -1,12 +1,22 @@
+import json
+import time
+from pydantic import BaseModel
+from google.genai import types
 from app.core.gemini_client import client
 from app.core.supabase_client import supabase
 from app.services.embeddings import get_embedding
-import time
 
 GEMINI_MODEL = "gemini-3.5-flash"
 
 
-def analyze_fit(resume_id: str, job: dict) -> str:
+class FitAnalysis(BaseModel):
+    score: int
+    explanation: str
+    strengths: list[str]
+    gaps: list[str]
+
+
+def analyze_fit(resume_id: str, job: dict) -> dict:
     query_vec = get_embedding(job["description"], task_type="RETRIEVAL_QUERY")
     chunks = (
         supabase.rpc(
@@ -35,21 +45,23 @@ Description: {job["description"]}
 RELEVANT PARTS OF THE CANDIDATE'S RESUME:
 {resume_context}
 
-Task: Assess how well this candidate fits the role. Cover:
-1. Strengths: which resume evidence supports the requirements
-2. Gaps: requirements with no evidence in the resume
-3. Overall judgment in 2-3 sentences
+Evaluate fit. Rules: use ONLY the resume content above. If something
+isn't shown, treat it as missing and list it under gaps. Do not assume
+or invent skills. Be honest with the score — most real candidates are
+not a 90+ fit."""
 
-Rules: use ONLY the resume content above. If something isn't shown,
-treat it as missing. Do not assume or invent skills."""
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=FitAnalysis,
+    )
 
     for attempt in range(3):
         try:
             response = client.models.generate_content(
-                model=GEMINI_MODEL, contents=prompt
+                model=GEMINI_MODEL, contents=prompt, config=config
             )
-            return response.text
-        except Exception as e:
+            return json.loads(response.text)
+        except Exception:
             if attempt == 2:
                 raise
             time.sleep(2)
