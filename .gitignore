@@ -2,5 +2,6 @@ venv/
 .env
 __pycache__/
 *.pyc
+test_*.py
 test_agent.py
 test_jobs.py
