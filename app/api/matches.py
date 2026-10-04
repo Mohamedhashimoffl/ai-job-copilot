@@ -4,6 +4,7 @@ from app.core.supabase_client import supabase
 from app.services.matcher import analyze_fit
 from app.services.cover_letter import generate_cover_letter
 from app.services.embeddings import get_embedding
+from app.services.agent_tools import run_agent
 
 
 router = APIRouter()
@@ -108,3 +109,15 @@ def cover_letter(
 
     letter = generate_cover_letter(resume_context, job, match)
     return {"cover_letter": letter}
+
+
+@router.post("/{resume_id}/auto-apply")
+def auto_apply(
+    resume_id: str,
+    goal: str,
+    user=Depends(get_current_user),
+    token: str = Depends(get_token),
+):
+    supabase.postgrest.auth(token)
+    result = run_agent(user, resume_id, goal)
+    return {"result": result}
