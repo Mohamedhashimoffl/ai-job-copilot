@@ -3,6 +3,36 @@ from google.genai import types
 from app.core.gemini_client import client
 import requests
 from app.services.matcher import analyze_fit
+import time
+
+
+class AgentGuardrails:
+    def __init__(
+        self, max_turns: int = 6, max_tool_calls: int = 8, max_seconds: int = 60
+    ):
+        self.max_turns = max_turns
+        self.max_tool_calls = max_tool_calls
+        self.max_seconds = max_seconds
+        self.start_time = time.time()
+        self.tool_call_count = 0
+        self.call_history: list[tuple[str, str]] = []
+
+    def check_time(self):
+        if time.time() - self.start_time > self.max_seconds:
+            raise TimeoutError(f"Agent exceeded {self.max_seconds}s wall-clock limit")
+
+    def check_tool_call(self, tool_name: str, args: dict):
+        self.tool_call_count += 1
+        if self.tool_call_count > self.max_tool_calls:
+            raise RuntimeError(
+                f"Agent exceeded {self.max_tool_calls} tool calls — stopping to protect quota"
+            )
+        signature = (tool_name, str(sorted(args.items())))
+        if self.call_history.count(signature) >= 2:
+            raise RuntimeError(
+                f"Agent repeated the same call 3x ({tool_name}) — likely stuck, stopping"
+            )
+        self.call_history.append(signature)
 
 
 def search_job_matches(resume_id: str, min_score: int = 70) -> list[dict]:
@@ -85,8 +115,8 @@ agent_tool = types.Tool(
     ]
 )
 
-AGENT_MODEL = "gemini-3.5-flash"
-
+# AGENT_MODEL = "gemini-3.1-flash-lite"
+AGENT_MODEL = "gemini-1.5-flash"  # or "gemini-2.5-flash"
 
 # def run_agent(user, resume_id: str, user_goal: str, max_turns: int = 6) -> str:
 #     chat = client.chats.create(
@@ -130,27 +160,36 @@ AGENT_MODEL = "gemini-3.5-flash"
 #     return "Agent stopped after max turns without a final answer."
 
 
-def run_agent(user, resume_id: str, user_goal: str, max_turns: int = 6) -> str:
+def run_agent(user, resume_id: str, user_goal: str) -> str:
+    guardrails = AgentGuardrails(max_tool_calls=2)
     chat = client.chats.create(
         model=AGENT_MODEL, config=types.GenerateContentConfig(tools=[agent_tool])
     )
     response = chat.send_message(user_goal)
     live_jobs_cache = {}
 
-    for turn in range(max_turns):
-        print(f"\n--- [TURN {turn + 1}] ---")
+    for _ in range(guardrails.max_turns):
+        print(f"\n--- [TURN {_ + 1}] ---")
 
         # If no tool calls were requested, Gemini is providing its final text answer
         if not response.function_calls:
-            print("[AGENT FINAL TEXT]:", response.text)
-            return (
+            final_text = (
                 response.text
-                or "Completed actions, but no summary message was generated."
+                or "Workflow completed. Relevant jobs were analyzed and processed."
             )
+            return {"result": final_text, "tool_calls_used": guardrails.tool_call_count}
 
         call = response.function_calls[0]
         args = dict(call.args)
         print(f"[TOOL REQUESTED]: {call.name} with args: {args}")
+
+        try:
+            guardrails.check_tool_call(call.name, args)
+        except (RuntimeError, TimeoutError) as e:
+            return {
+                "result": f"Stopped early: {e}",
+                "tool_calls_used": guardrails.tool_call_count,
+            }
 
         if call.name == "search_job_matches":
             tool_result = search_job_matches(resume_id, args.get("min_score", 70))
@@ -181,10 +220,10 @@ def run_agent(user, resume_id: str, user_goal: str, max_turns: int = 6) -> str:
             )
         )
 
-    return (
-        response.text
-        or "Agent stopped after reaching maximum turns without a final response."
-    )
+    return {
+        "result": "Stopped: max turns reached without a final answer.",
+        "tool_calls_used": guardrails.tool_call_count,
+    }
 
 
 def search_live_jobs(query: str, limit: int = 10) -> list[dict]:
