@@ -115,8 +115,7 @@ agent_tool = types.Tool(
     ]
 )
 
-# AGENT_MODEL = "gemini-3.1-flash-lite"
-AGENT_MODEL = "gemini-1.5-flash"  # or "gemini-2.5-flash"
+AGENT_MODEL = "gemini-3.1-flash"
 
 # def run_agent(user, resume_id: str, user_goal: str, max_turns: int = 6) -> str:
 #     chat = client.chats.create(
