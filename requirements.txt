@@ -27,11 +27,13 @@ httplib2==0.32.0
 httpx==0.28.1
 hyperframe==6.1.0
 idna==3.20
+iniconfig==2.3.0
 multidict==6.9.1
 packaging==26.3
 pdfminer.six==20260107
 pdfplumber==0.11.10
 pillow==12.3.0
+pluggy==1.6.0
 postgrest==2.31.0
 propcache==0.5.4
 proto-plus==1.28.2
@@ -41,9 +43,12 @@ pyasn1_modules==0.4.2
 pycparser==3.0
 pydantic==2.13.5
 pydantic_core==2.46.5
+Pygments==2.21.0
 PyJWT==2.15.0
 pyparsing==3.3.3
 pypdfium2==5.13.0
+pytest==9.1.1
+pytest-mock==3.16.0
 python-dotenv==1.2.3
 python-jose==3.5.0
 python-multipart==0.0.32
