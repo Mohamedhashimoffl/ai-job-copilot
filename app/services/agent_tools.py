@@ -117,50 +117,9 @@ agent_tool = types.Tool(
 
 AGENT_MODEL = "gemini-3.5-flash-lite"
 
-# def run_agent(user, resume_id: str, user_goal: str, max_turns: int = 6) -> str:
-#     chat = client.chats.create(
-#         model=AGENT_MODEL, config=types.GenerateContentConfig(tools=[agent_tool])
-#     )
-#     response = chat.send_message(user_goal)
-#     live_jobs_cache = {}
-
-#     for _ in range(max_turns):
-#         if not response.function_calls:
-#             return response.text
-
-#         call = response.function_calls[0]
-#         args = dict(call.args)
-
-#         if call.name == "search_job_matches":
-#             tool_result = search_job_matches(resume_id, args.get("min_score", 70))
-#         elif call.name == "search_live_jobs":
-#             jobs = search_live_jobs(args["query"], args.get("limit", 10))
-#             for j in jobs:
-#                 live_jobs_cache[j["url"]] = j
-#             tool_result = jobs
-#         elif call.name == "score_job_against_resume":
-#             job = live_jobs_cache.get(args["job_url"])
-#             tool_result = (
-#                 score_job_against_resume(resume_id, job)
-#                 if job
-#                 else {"error": "job not found, search first"}
-#             )
-#         elif call.name == "add_to_tracker":
-#             tool_result = add_to_tracker(user.id, args["job_id"])
-#         else:
-#             tool_result = {"error": f"Unknown tool: {call.name}"}
-
-#         response = chat.send_message(
-#             types.Part.from_function_response(
-#                 name=call.name, response={"result": tool_result}
-#             )
-#         )
-
-#     return "Agent stopped after max turns without a final answer."
-
 
 def run_agent(user, resume_id: str, user_goal: str) -> str:
-    guardrails = AgentGuardrails(max_tool_calls=2)
+    guardrails = AgentGuardrails(max_turns=6, max_tool_calls=8, max_seconds=60)
     chat = client.chats.create(
         model=AGENT_MODEL, config=types.GenerateContentConfig(tools=[agent_tool])
     )
