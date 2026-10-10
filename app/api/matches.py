@@ -119,5 +119,4 @@ def auto_apply(
     token: str = Depends(get_token),
 ):
     supabase.postgrest.auth(token)
-    result = run_agent(user, resume_id, goal)
-    return {"result": result}
+    return run_agent(user, resume_id, goal)

@@ -4,6 +4,7 @@ from app.core.gemini_client import client
 import requests
 from app.services.matcher import analyze_fit
 import time
+from app.services.embeddings import get_embedding
 
 
 class AgentGuardrails:
@@ -227,6 +228,9 @@ def score_job_against_resume(resume_id: str, job: dict) -> dict:
                     "company": job["company"],
                     "description": job["description"],
                     "source_url": job["url"],
+                    "embedding": get_embedding(
+                        job["description"], task_type="RETRIEVAL_DOCUMENT"
+                    ),
                 }
             )
             .execute()

@@ -32,8 +32,6 @@ if "access_token" not in st.session_state:
 
     st.stop()
 
-# ...the sidebar navigation and page routing below stays exactly as it was
-
 page = st.sidebar.radio(
     "Navigate", ["Upload Resume", "Matches", "Tracker", "Run Agent"]
 )
