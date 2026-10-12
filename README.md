@@ -3,12 +3,14 @@
 Upload your resume, see which jobs fit it and **why**, generate a tailored cover letter, track your applications, and let an agent find and score live remote jobs for you.
 
 **Live demo:** [StreamlitAppURL](https://ai-job-copilot-project.streamlit.app/)
-**API docs (Swagger):** [<RenderURL>](https://ai-job-copilot-ww75.onrender.com/docs)
+**API docs (Swagger):** [RenderURL](https://ai-job-copilot-ww75.onrender.com/docs)
 **Demo login:** `demo@jobcopilot.com` / `Demo321` (or create your own account on the Sign up tab)
 
 > The backend runs on a free Render instance that sleeps when idle, so the first load can take about a minute. The AI features run on Gemini's free tier, which has a small daily quota, so heavy use may return a "busy" message.
 
-<!-- demo : ![Demo](docs/demo.gif) -->
+## Demo Walkthrough
+
+[Download / Watch Full Walkthrough Demo (MP4)](https://github.com/Mohamedhashimoffl/ai-job-copilot/releases/download/v1.0.0/AiJobCopilot.mp4)
 
 ## What it does
 
