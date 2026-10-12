@@ -67,3 +67,16 @@ async def upload_resume(
         "char_count": len(raw_text),
         "chunk_count": len(chunks),
     }
+
+
+@router.get("")
+def list_resumes(user=Depends(get_current_user), token: str = Depends(get_token)):
+    supabase.postgrest.auth(token)
+    return (
+        supabase.table("resumes")
+        .select("id, file_name, uploaded_at")
+        .eq("user_id", user.id)
+        .order("uploaded_at", desc=True)
+        .execute()
+        .data
+    )

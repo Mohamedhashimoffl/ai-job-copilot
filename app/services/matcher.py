@@ -3,7 +3,6 @@ import time
 from pydantic import BaseModel
 from google.genai import types
 from app.core.gemini_client import client
-from app.core.supabase_client import supabase
 from app.services.embeddings import get_embedding
 
 GEMINI_MODEL = "gemini-3.5-flash-lite"
@@ -16,10 +15,10 @@ class FitAnalysis(BaseModel):
     gaps: list[str]
 
 
-def analyze_fit(resume_id: str, job: dict) -> dict:
+def analyze_fit(db, resume_id: str, job: dict) -> dict:
     query_vec = get_embedding(job["description"], task_type="RETRIEVAL_QUERY")
     chunks = (
-        supabase.rpc(
+        db.rpc(
             "match_resume_chunks",
             {
                 "p_resume_id": resume_id,

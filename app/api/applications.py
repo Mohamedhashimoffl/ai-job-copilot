@@ -1,9 +1,10 @@
+from datetime import datetime, timezone
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional
-from app.core.security import get_current_user, get_token
-from app.core.supabase_client import supabase
-from datetime import datetime, timezone
+
+from app.core.security import get_current_user, get_db
 
 router = APIRouter()
 
@@ -38,15 +39,26 @@ def needs_followup(application: dict) -> bool:
 def create_application(
     payload: ApplicationCreate,
     user=Depends(get_current_user),
-    token: str = Depends(get_token),
+    db=Depends(get_db),
 ):
-    supabase.postgrest.auth(token)
     if payload.status not in VALID_STATUSES:
         raise HTTPException(
             status_code=400, detail=f"status must be one of {VALID_STATUSES}"
         )
+
+    existing = (
+        db.table("applications")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("job_id", payload.job_id)
+        .execute()
+        .data
+    )
+    if existing:
+        return existing[0]
+
     result = (
-        supabase.table("applications")
+        db.table("applications")
         .insert(
             {
                 "user_id": user.id,
@@ -63,12 +75,11 @@ def create_application(
 def list_applications(
     status: Optional[str] = None,
     user=Depends(get_current_user),
-    token: str = Depends(get_token),
+    db=Depends(get_db),
 ):
-    supabase.postgrest.auth(token)
     query = (
-        supabase.table("applications")
-        .select("*, job_postings(title, company)")
+        db.table("applications")
+        .select("*, job_postings(title, company, source_url)")
         .eq("user_id", user.id)
     )
     if status:
@@ -77,11 +88,10 @@ def list_applications(
 
 
 @router.get("/needs-followup")
-def get_followups(user=Depends(get_current_user), token: str = Depends(get_token)):
-    supabase.postgrest.auth(token)
+def get_followups(user=Depends(get_current_user), db=Depends(get_db)):
     apps = (
-        supabase.table("applications")
-        .select("*, job_postings(title, company)")
+        db.table("applications")
+        .select("*, job_postings(title, company, source_url)")
         .eq("user_id", user.id)
         .execute()
         .data
@@ -98,11 +108,10 @@ def get_followups(user=Depends(get_current_user), token: str = Depends(get_token
 
 @router.get("/{application_id}")
 def get_application(
-    application_id: str, user=Depends(get_current_user), token: str = Depends(get_token)
+    application_id: str, user=Depends(get_current_user), db=Depends(get_db)
 ):
-    supabase.postgrest.auth(token)
     results = (
-        supabase.table("applications")
+        db.table("applications")
         .select("*, job_postings(*)")
         .eq("id", application_id)
         .eq("user_id", user.id)
@@ -119,23 +128,34 @@ def update_application(
     application_id: str,
     payload: ApplicationUpdate,
     user=Depends(get_current_user),
-    token: str = Depends(get_token),
+    db=Depends(get_db),
 ):
-    supabase.postgrest.auth(token)
     if payload.status and payload.status not in VALID_STATUSES:
         raise HTTPException(
             status_code=400, detail=f"status must be one of {VALID_STATUSES}"
         )
 
     updates = payload.model_dump(exclude_none=True)
-    if updates.get("status") == "applied" and "applied_at" not in updates:
-        updates["applied_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Start the follow-up clock the first time an application is marked
+    # applied or interview, without resetting it on later status changes.
+    if updates.get("status") in ("applied", "interview") and "applied_at" not in updates:
+        current = (
+            db.table("applications")
+            .select("applied_at")
+            .eq("id", application_id)
+            .eq("user_id", user.id)
+            .execute()
+            .data
+        )
+        if current and not current[0].get("applied_at"):
+            updates["applied_at"] = datetime.now(timezone.utc).isoformat()
 
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
     result = (
-        supabase.table("applications")
+        db.table("applications")
         .update(updates)
         .eq("id", application_id)
         .eq("user_id", user.id)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.security import get_current_user
-from app.core.supabase_client import supabase
+from app.core.supabase_client import auth_client
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ class AuthRequest(BaseModel):
 
 @router.post("/signup")
 def signup(payload: AuthRequest):
-    result = supabase.auth.sign_up(
+    result = auth_client.auth.sign_up(
         {"email": payload.email, "password": payload.password}
     )
     if result.user is None:
@@ -24,7 +24,7 @@ def signup(payload: AuthRequest):
 
 @router.post("/login")
 def login(payload: AuthRequest):
-    result = supabase.auth.sign_in_with_password(
+    result = auth_client.auth.sign_in_with_password(
         {"email": payload.email, "password": payload.password}
     )
     if result.session is None:

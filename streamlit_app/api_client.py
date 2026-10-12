@@ -60,3 +60,16 @@ def api_post(path: str, **kwargs):
     return requests.post(
         f"{API_BASE}{path}", headers=get_headers(), timeout=180, **kwargs
     )
+
+
+def api_patch(path: str, **kwargs):
+    return requests.patch(
+        f"{API_BASE}{path}", headers=get_headers(), timeout=90, **kwargs
+    )
+
+
+def error_text(r) -> str:
+    try:
+        return str(r.json().get("detail", r.text))
+    except Exception:
+        return r.text

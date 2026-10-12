@@ -1,4 +1,5 @@
 import streamlit as st
+from sidebar import resume_picker
 from api_client import login, signup
 
 st.set_page_config(page_title="AI Job Co-Pilot", layout="wide")
@@ -35,6 +36,8 @@ if "access_token" not in st.session_state:
 page = st.sidebar.radio(
     "Navigate", ["Upload Resume", "Matches", "Tracker", "Run Agent"]
 )
+
+resume_picker()
 
 if page == "Upload Resume":
     import pages_upload as p
