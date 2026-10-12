@@ -1,7 +1,7 @@
 from app.core.gemini_client import client
 import time
 
-WRITER_MODEL = "gemini-3.5-flash"
+WRITER_MODEL = "gemini-3.5-flash-lite"
 
 
 def generate_cover_letter(resume_context: str, job: dict, match: dict) -> str:

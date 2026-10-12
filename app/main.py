@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import os
 from app.api import resumes
 from fastapi import FastAPI
 from app.api import auth, matches

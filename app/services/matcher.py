@@ -6,7 +6,7 @@ from app.core.gemini_client import client
 from app.core.supabase_client import supabase
 from app.services.embeddings import get_embedding
 
-GEMINI_MODEL = "gemini-3.5-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 
 class FitAnalysis(BaseModel):
